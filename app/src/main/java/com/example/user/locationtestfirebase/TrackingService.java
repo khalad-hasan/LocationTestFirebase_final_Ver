@@ -693,6 +693,9 @@ Context context;
                             // for ActivityCompat#requestPermissions for more details.
                             return;
                         }
+
+                        // Added to chcke if the phone is locked vs unlocked//
+
                         String status="NULL";
                         KeyguardManager myKM = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
                         if (myKM.inKeyguardRestrictedInputMode()){
