@@ -3,13 +3,17 @@ package com.example.user.locationtestfirebase;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
+import android.app.Activity;
 import android.app.ActivityManager;
+import android.app.Application;
+import android.app.ApplicationErrorReport;
 import android.app.KeyguardManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.app.admin.DeviceAdminInfo;
 import android.app.usage.UsageStats;
 import android.app.usage.UsageStatsManager;
 import android.content.BroadcastReceiver;
@@ -24,6 +28,7 @@ import android.content.pm.ResolveInfo;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -34,6 +39,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 
+import com.google.android.gms.common.internal.Constants;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 
@@ -54,15 +60,19 @@ import android.widget.Toast;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.SortedMap;
@@ -71,6 +81,8 @@ import java.util.TimerTask;
 import java.util.TreeMap;
 import java.util.concurrent.Executor;
 
+import static android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND;
+import static android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE;
 
 public class TrackingService extends Service {
 
@@ -80,11 +92,15 @@ public class TrackingService extends Service {
     // private LocationManager mLocationManager;
     //  public String bestProvider;
     //  public Criteria criteria;
+
+
     private FusedLocationProviderClient mFusedLocationClient;
     private List<String> listPackageName = new ArrayList<>();
     private List<String> listAppName = new ArrayList<>();
     private Timer timer = new Timer();
     private android.os.Handler handler = new android.os.Handler();
+
+    private BufferedWriter buff = null;
 
     private int locationRequestCode = 1000;
     private double wayLatitude = 0.0, wayLongitude = 0.0;
@@ -101,6 +117,10 @@ public class TrackingService extends Service {
 
 
 
+Context context;
+
+  //   StatusBarNotification statusBarNotification;
+//    String pack = statusBarNotification.getPackageName();
 
     // int LOCATION_INTERVAL = 20000;
     // int LOCATION_DISTANCE = 0;
@@ -177,6 +197,7 @@ public class TrackingService extends Service {
     };
 
     private void loginToFirebase() {
+
 //
 ////Authenticate with Firebase, using the email and password we created earlier//
 //
@@ -233,7 +254,7 @@ public class TrackingService extends Service {
 
 //Specify how often your app should request the device’s location//
 
-        //  request.setInterval(900000);
+    //  request.setInterval(900000);
         request.setInterval(1000);
 
 //Get the most accurate location data available//
@@ -258,7 +279,7 @@ public class TrackingService extends Service {
 //Get a reference to the database, so your app can perform read and write operations//
 
                     DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Test1");
-                    //  DatabaseReference ref1= FirebaseDatabase.getInstance().getReference("Test2");
+                   //   DatabaseReference ref1= FirebaseDatabase.getInstance().getReference("Test2");
                     //    DatabaseReference ref3= FirebaseDatabase.getInstance().getReference("Test3");
                     android.location.Location location = locationResult.getLastLocation();
                     if (location != null) {
@@ -285,7 +306,7 @@ public class TrackingService extends Service {
 
                         //Save the location data to the database//
                         ref.child("date").setValue(date.toString());
-                        // ref1.child("date").setValue(date.toString());
+                     //    ref1.child("date").setValue(date.toString());
                         //   ref3.child("date").setValue(date.toString());
 
 
@@ -335,7 +356,7 @@ public class TrackingService extends Service {
                     @Override
                     public void run() {
 
-                        aggregationapp();
+                       aggregationapp();
 
                     }
                 });
@@ -350,6 +371,8 @@ public class TrackingService extends Service {
                     public void run() {
 
                         printForegroundTask();
+                     //   printfg();
+
 
                     }
                 });
@@ -357,7 +380,31 @@ public class TrackingService extends Service {
         }, 0, 1000);
 
     }
-
+   // int showLimit=20;
+//  private void printfg(){
+//
+//      String topPackageName = null;
+//      if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.LOLLIPOP) {
+//          ActivityManager am = (ActivityManager) this.getSystemService(Context.ACTIVITY_SERVICE);
+//          ActivityManager.RunningTaskInfo foregroundTaskInfo = am.getRunningTasks(1).get(0);
+//          topPackageName = foregroundTaskInfo.topActivity.getPackageName();
+//      }else{
+//          UsageStatsManager usage = (UsageStatsManager) this.getSystemService(Context.USAGE_STATS_SERVICE);
+//          long time = System.currentTimeMillis();
+//          List<UsageStats> stats = usage.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, time - 1000*1000, time);
+//          if (stats != null) {
+//              SortedMap<Long, UsageStats> runningTask = new TreeMap<Long,UsageStats>();
+//              for (UsageStats usageStats : stats) {
+//                  runningTask.put(usageStats.getLastTimeUsed(), usageStats);
+//              }
+//              if (runningTask.isEmpty()) {
+//                  topPackageName="None";
+//              }
+//              topPackageName =  runningTask.get(runningTask.lastKey()).getPackageName();
+//          }
+//      }
+//      Log.e("Task List", "Current App in foreground is: " + topPackageName);
+//  }
     //Getting the current applications//
 
 
@@ -406,18 +453,7 @@ public class TrackingService extends Service {
             //  currApp= String.valueOf(task.get(0).indexOf(currentApp));
 
         }
-        NotificationManager mNotificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        StatusBarNotification[] notifications = new StatusBarNotification[0];
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            notifications = mNotificationManager.getActiveNotifications();
-            Log.d("yahan", String.valueOf(notifications));
-        }
-        for (StatusBarNotification notification : notifications) {
-            if (notification.getId() == 100) {
-                Log.d("Mohabbat", String.valueOf(notification));
 
-            }
-        }
 
         LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -562,11 +598,15 @@ public class TrackingService extends Service {
             Log.e("APPNAME", "app is " + appName + "----" + pacName + "\n");
 
             String app = appName + "\t" + pacName + "\t" + "\n";
+
             try {
                 File data3 = new File("appname.txt");
-                FileOutputStream fos = openFileOutput("appname.txt", Context.MODE_APPEND);
+                FileOutputStream fos = openFileOutput("appname.txt",Context.MODE_APPEND);
                 fos.write((app).getBytes());
                 fos.close();
+//                FileWriter fw =new FileWriter("appname.txt", false);
+//                fw.write(app);
+//                fw.close();
             } catch (FileNotFoundException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -641,6 +681,7 @@ public class TrackingService extends Service {
                         }
 
                         Log.d("AppInfo", "app name " + previous + " App time" + totlaTime);
+
                         LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
                         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                             // TODO: Consider calling
@@ -652,12 +693,20 @@ public class TrackingService extends Service {
                             // for ActivityCompat#requestPermissions for more details.
                             return;
                         }
+                        String status="NULL";
+                        KeyguardManager myKM = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+                        if (myKM.inKeyguardRestrictedInputMode()){
+                            status="locked";
+                        }
+                        else{
+                            status="unlocked";
+                        }
                         Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                         if (location != null) {
                             double longitude = location.getLongitude();
                             double latitude = location.getLatitude();
                             String date = String.valueOf(android.text.format.DateFormat.format("dd-MM-yyyy HH:mm:ss", new java.util.Date()));
-                            String appt = date + "\t" + latitude + "\t" + longitude + "\t" + previous + "\t" + appName + "\t" + totlaTime + "\n";
+                            String appt = date + "\t" + latitude + "\t" + longitude + "\t" + previous + "\t" + appName + "\t" + totlaTime + "\t" + status +"\n";
                             try {
                                 File data7 = new File("individual.txt");
                                 FileOutputStream fos = openFileOutput("individual.txt", Context.MODE_APPEND);
@@ -697,3 +746,4 @@ public class TrackingService extends Service {
     }
 
 }
+
