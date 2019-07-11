@@ -92,6 +92,7 @@ public class TrackingService extends Service {
     // private LocationManager mLocationManager;
     //  public String bestProvider;
     //  public Criteria criteria;
+    NotificationService service;
 
 
     private FusedLocationProviderClient mFusedLocationClient;
@@ -142,7 +143,6 @@ Context context;
         loginToFirebase();
         installedapp();
         requestLocationUpdates();
-
 }
 
 //Create the persistent notification//
@@ -356,7 +356,7 @@ Context context;
                     @Override
                     public void run() {
 
-                       aggregationapp();
+                     aggregationapp();
 
                     }
                 });
@@ -370,7 +370,7 @@ Context context;
                     @Override
                     public void run() {
 
-                        printForegroundTask();
+                       printForegroundTask();
                      //   printfg();
 
 
@@ -407,7 +407,7 @@ Context context;
 //  }
     //Getting the current applications//
 
-
+//
     private void printForegroundTask() {
         String currentApp = "NULL";
         String currApp = "NULL";
@@ -439,15 +439,16 @@ Context context;
                     int index = listPackageName.indexOf(currentApp);
                     appName = listAppName.get(index);
 
-                    Log.d("AppNameTest", appName);
+                    Log.d("PackageZ", "Package "+currentApp);
 
 
                 }
             }
         } else {
             ActivityManager am = (ActivityManager) this.getSystemService(Context.ACTIVITY_SERVICE);
-            List<ActivityManager.RunningAppProcessInfo> tasks = am.getRunningAppProcesses();
-            currentApp = tasks.get(0).processName;
+            currentApp=am.getRunningTasks(1).get(0).topActivity.getPackageName();
+//            List<ActivityManager.RunningAppProcessInfo> tasks = am.getRunningAppProcesses();
+//            currentApp = tasks.get(0).processName;
             Log.d("another", currentApp);
             ArrayList<String> task = new ArrayList<String>(Collections.singleton(currentApp));
             //  currApp= String.valueOf(task.get(0).indexOf(currentApp));
@@ -466,6 +467,32 @@ Context context;
             // for ActivityCompat#requestPermissions for more details.
             return;
         }
+//String noti=" ";
+//        String notif="";
+//        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+//        StatusBarNotification[] notifications = new StatusBarNotification[1];
+//        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+//            notifications = mNotificationManager.getActiveNotifications();
+//
+//        }
+//        for (StatusBarNotification notification : notifications) {
+//            if (!notification.getPackageName().equals(currentApp)) {
+//                noti="Current";
+////                Log.d("bottle",notification.getPackageName());
+////                Log.d("water",currentApp);
+//            }
+//            else{
+//                noti="Notification";
+//            }
+//        }
+//       if(noti.equals(currentApp)){
+//             notif="Notification";
+//        }
+//        else{
+//            notif="Current";
+//        }
+
+
         KeyguardManager myKM = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
         if (myKM.inKeyguardRestrictedInputMode()) {
             Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
@@ -475,7 +502,7 @@ Context context;
                 Log.e("APPLICATION8", "Current App in foreground is: " + currentApp);
 
                 String date = String.valueOf(android.text.format.DateFormat.format("dd-MM-yyyy HH:mm:ss", new java.util.Date()));
-                String curr = date + "\t" + longitude + "\t" + latitude + "\t" + currentApp + "\t" + appName + "\n";
+                String curr = date + "\t" + longitude + "\t" + latitude + "\t" + currentApp + "\t" + appName +  "\n";
                 //  if (notifications.equals(0)) {
                 try {
                     File data2 = new File("details_locked.txt");
@@ -748,5 +775,6 @@ Context context;
         }
     }
 
-}
 
+}
+//
