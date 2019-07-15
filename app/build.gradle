@@ -16,6 +16,10 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    repositories {
+        // ...
+        maven { url 'https://dl.bintray.com/rvalerio/maven' }
+    }
 }
 
 dependencies {
@@ -35,6 +39,7 @@ dependencies {
     //implementation 'com.google.android.gms:play-services-location:9.0.1'
 
     implementation "com.google.android.gms:play-services-location:15.0.1"
+    implementation 'com.rvalerio:fgchecker:1.1.0'
 
 
 

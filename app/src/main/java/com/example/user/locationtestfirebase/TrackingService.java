@@ -59,6 +59,8 @@ import android.widget.Toast;
 
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.rvalerio.fgchecker.AppChecker;
+
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -92,7 +94,7 @@ public class TrackingService extends Service {
     // private LocationManager mLocationManager;
     //  public String bestProvider;
     //  public Criteria criteria;
-    NotificationService service;
+    private AppChecker appChecker;
 
 
     private FusedLocationProviderClient mFusedLocationClient;
@@ -114,13 +116,10 @@ public class TrackingService extends Service {
     long previousStartTime = 0;
     long endTime = 0;
     long totlaTime = 0;
+    String appName = "Null";
 
 
-
-
-Context context;
-
-  //   StatusBarNotification statusBarNotification;
+    //   StatusBarNotification statusBarNotification;
 //    String pack = statusBarNotification.getPackageName();
 
     // int LOCATION_INTERVAL = 20000;
@@ -134,8 +133,6 @@ Context context;
     }
 
 
-
-
     @Override
     public void onCreate() {
         super.onCreate();
@@ -143,7 +140,9 @@ Context context;
         loginToFirebase();
         installedapp();
         requestLocationUpdates();
-}
+        startChecker();
+
+    }
 
 //Create the persistent notification//
 
@@ -254,7 +253,7 @@ Context context;
 
 //Specify how often your app should request the device’s location//
 
-    //  request.setInterval(900000);
+        //  request.setInterval(900000);
         request.setInterval(1000);
 
 //Get the most accurate location data available//
@@ -279,7 +278,7 @@ Context context;
 //Get a reference to the database, so your app can perform read and write operations//
 
                     DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Test1");
-                   //   DatabaseReference ref1= FirebaseDatabase.getInstance().getReference("Test2");
+                    //   DatabaseReference ref1= FirebaseDatabase.getInstance().getReference("Test2");
                     //    DatabaseReference ref3= FirebaseDatabase.getInstance().getReference("Test3");
                     android.location.Location location = locationResult.getLastLocation();
                     if (location != null) {
@@ -306,7 +305,7 @@ Context context;
 
                         //Save the location data to the database//
                         ref.child("date").setValue(date.toString());
-                     //    ref1.child("date").setValue(date.toString());
+                        //    ref1.child("date").setValue(date.toString());
                         //   ref3.child("date").setValue(date.toString());
 
 
@@ -316,7 +315,6 @@ Context context;
             }, null);
         }
     }
-
 
 
     //Geeting it run//
@@ -330,22 +328,6 @@ Context context;
         List apps = new ArrayList<>();
         final String[] activityOnTop = {null};
 
-        PackageManager packageManager = getPackageManager();
-        Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
-        mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-
-        List<ResolveInfo> appList = packageManager.queryIntentActivities(mainIntent, 0);
-        Collections.sort(appList, new ResolveInfo.DisplayNameComparator(packageManager));
-        List<PackageInfo> packs = packageManager.getInstalledPackages(0);
-        for (int i = 0; i < packs.size(); i++) {
-            PackageInfo p = packs.get(i);
-            ApplicationInfo a = p.applicationInfo;
-            // skip system apps if they shall not be included
-            if ((a.flags & ApplicationInfo.FLAG_SYSTEM) == 1) {
-                continue;
-            }
-            apps.add(p.packageName);
-        }
         //aggregationapp();
 
 
@@ -356,7 +338,7 @@ Context context;
                     @Override
                     public void run() {
 
-                     aggregationapp();
+                        aggregationapp();
 
                     }
                 });
@@ -370,8 +352,8 @@ Context context;
                     @Override
                     public void run() {
 
-                       printForegroundTask();
-                     //   printfg();
+                        //   printForegroundTask();
+                        //   printfg();
 
 
                     }
@@ -380,234 +362,267 @@ Context context;
         }, 0, 1000);
 
     }
-   // int showLimit=20;
-//  private void printfg(){
+
+    private void startChecker() {
+
+        appChecker = new AppChecker();
+        appChecker
+                .when(getPackageName(), new AppChecker.Listener() {
+                    @Override
+                    public void onForeground(String packageName) {
+                        Toast.makeText(getBaseContext(), "Our app is in the foreground.", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .whenOther(new AppChecker.Listener() {
+                    @Override
+                    public void onForeground(String packageName) {
+                        //    Toast.makeText(getBaseContext(), "Foreground: " + packageName, Toast.LENGTH_SHORT).show();
+                        Log.d("finalZ", packageName);
+                        int index = listPackageName.indexOf(packageName);
+                        appName = listAppName.get(index);
+                        LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 //
-//      String topPackageName = null;
-//      if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.LOLLIPOP) {
-//          ActivityManager am = (ActivityManager) this.getSystemService(Context.ACTIVITY_SERVICE);
-//          ActivityManager.RunningTaskInfo foregroundTaskInfo = am.getRunningTasks(1).get(0);
-//          topPackageName = foregroundTaskInfo.topActivity.getPackageName();
-//      }else{
-//          UsageStatsManager usage = (UsageStatsManager) this.getSystemService(Context.USAGE_STATS_SERVICE);
-//          long time = System.currentTimeMillis();
-//          List<UsageStats> stats = usage.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, time - 1000*1000, time);
-//          if (stats != null) {
-//              SortedMap<Long, UsageStats> runningTask = new TreeMap<Long,UsageStats>();
-//              for (UsageStats usageStats : stats) {
-//                  runningTask.put(usageStats.getLastTimeUsed(), usageStats);
-//              }
-//              if (runningTask.isEmpty()) {
-//                  topPackageName="None";
-//              }
-//              topPackageName =  runningTask.get(runningTask.lastKey()).getPackageName();
-//          }
-//      }
-//      Log.e("Task List", "Current App in foreground is: " + topPackageName);
+//
+                        KeyguardManager myKM = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+                        if (myKM.inKeyguardRestrictedInputMode()) {
+                            @SuppressLint("MissingPermission") Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                            if (location != null) {
+                                double longitude = location.getLongitude();
+                                double latitude = location.getLatitude();
+//                Log.e("APPLICATION8", "Current App in foreground is: " + currentApp);
+//
+                                String date = String.valueOf(android.text.format.DateFormat.format("dd-MM-yyyy HH:mm:ss", new java.util.Date()));
+                                String curr = date + "\t" + longitude + "\t" + latitude + "\t" + packageName + "\t" + appName + "\n";
+//                //  if (notifications.equals(0)) {
+                                try {
+                                    File data2 = new File("details_locked.txt");
+                                    FileOutputStream fos = openFileOutput("details_locked.txt", Context.MODE_APPEND);
+                                    fos.write((curr).getBytes());
+                                    fos.close();
+                                } catch (FileNotFoundException e) {
+                                    // TODO Auto-generated catch block
+                                    e.printStackTrace();
+                                } catch (IOException e) {
+                                    // TODO Auto-generated catch block
+                                    e.printStackTrace();
+                                }
+//
+//                Log.e("CURRENT APP", "Current App in foreground is: " + currentApp);
+//                 // }
+                            }
+//            Log.d("LOCKED", "pHONE IS LOCKED");
+//
+                        } else {
+                            @SuppressLint("MissingPermission") Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                            if (location != null) {
+                                double longitude = location.getLongitude();
+                                double latitude = location.getLatitude();
+                                double elevation = location.getAltitude();
+//                Log.e("APPLICATION8", "Current App in foreground is: " + currentApp);
+                                String date = String.valueOf(android.text.format.DateFormat.format("dd-MM-yyyy HH:mm:ss", new java.util.Date()));
+                                String curr = date + "\t" + longitude + "\t" + latitude + "\t" + elevation + "\t" + packageName + "\t" + appName + "\n";
+                                try {
+                                    File data2 = new File("details_unlocked.txt");
+                                    FileOutputStream fos = openFileOutput("details_unlocked.txt", Context.MODE_APPEND);
+                                    fos.write((curr).getBytes());
+                                    fos.close();
+                                } catch (FileNotFoundException e) {
+                                    // TODO Auto-generated catch block
+                                    e.printStackTrace();
+                                } catch (IOException e) {
+                                    // TODO Auto-generated catch block
+                                    e.printStackTrace();
+                                }
+                            }
+                        }
+                    }
+                })
+                .timeout(1000)
+                .start(this);
+
+
+    }
+
 //  }
     //Getting the current applications//
 
+    //
+//    private void printForegroundTask() {
+//        String currentApp = "NULL";
+//        String currApp = "NULL";
+//        String appName = "Null";
+//        String apptime = "NULL";
+//        String curtemp = "NULL";
+//        String lastknown = "NULL";
+//        String firsttime = "NULL";
+//        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+//            UsageStatsManager usm = (UsageStatsManager) this.getSystemService(Context.USAGE_STATS_SERVICE);
+//            long time = System.currentTimeMillis();
+//            List<UsageStats> appList = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, time - 1000 * 1000, time);
+//            if (appList != null && appList.size() > 0) {
+//                SortedMap<Long, UsageStats> mySortedMap = new TreeMap<Long, UsageStats>();
+//                for (UsageStats usageStats : appList) {
+//                    mySortedMap.put(usageStats.getLastTimeUsed(), usageStats);
+//                }
+//                if (mySortedMap != null && !mySortedMap.isEmpty()) {
 //
-    private void printForegroundTask() {
-        String currentApp = "NULL";
-        String currApp = "NULL";
-        String appName = "Null";
-        String apptime = "NULL";
-        String curtemp = "NULL";
-        String lastknown = "NULL";
-        String firsttime = "NULL";
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-            UsageStatsManager usm = (UsageStatsManager) this.getSystemService(Context.USAGE_STATS_SERVICE);
-            long time = System.currentTimeMillis();
-            List<UsageStats> appList = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, time - 1000 * 1000, time);
-            if (appList != null && appList.size() > 0) {
-                SortedMap<Long, UsageStats> mySortedMap = new TreeMap<Long, UsageStats>();
-                for (UsageStats usageStats : appList) {
-                    mySortedMap.put(usageStats.getLastTimeUsed(), usageStats);
-                }
-                if (mySortedMap != null && !mySortedMap.isEmpty()) {
-
-                    Log.d("out3", "inside the 3rd if loop");
-                    //  DateFormat dateFormat= SimpleDateFormat.getDateTimeInstance();
-                    String dateFormat = String.valueOf(android.text.format.DateFormat.format("dd-MM-yyyy HH:mm:ss", new java.util.Date()));
-                    currentApp = mySortedMap.get(mySortedMap.lastKey()).getPackageName();
-                    curtemp = currentApp;
-                    apptime = calculateTime(Long.parseLong(String.valueOf(mySortedMap.get(mySortedMap.lastKey()).getTotalTimeInForeground())));
-                    firsttime = String.valueOf(new Date(mySortedMap.get(mySortedMap.lastKey()).getFirstTimeStamp()));
-                    lastknown = String.valueOf(new Date(mySortedMap.get(mySortedMap.lastKey()).getLastTimeUsed()));
-                    // lasttamp=dateFormat.format(String.valueOf(new Date(mySortedMap.get(mySortedMap.lastKey()).getLastTimeStamp())));
-                    int index = listPackageName.indexOf(currentApp);
-                    appName = listAppName.get(index);
-
-                    Log.d("PackageZ", "Package "+currentApp);
-
-
-                }
-            }
-        } else {
-            ActivityManager am = (ActivityManager) this.getSystemService(Context.ACTIVITY_SERVICE);
-            currentApp=am.getRunningTasks(1).get(0).topActivity.getPackageName();
-//            List<ActivityManager.RunningAppProcessInfo> tasks = am.getRunningAppProcesses();
-//            currentApp = tasks.get(0).processName;
-            Log.d("another", currentApp);
-            ArrayList<String> task = new ArrayList<String>(Collections.singleton(currentApp));
-            //  currApp= String.valueOf(task.get(0).indexOf(currentApp));
-
-        }
-
-
-        LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return;
-        }
-//String noti=" ";
-//        String notif="";
-//        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-//        StatusBarNotification[] notifications = new StatusBarNotification[1];
-//        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-//            notifications = mNotificationManager.getActiveNotifications();
+//                    Log.d("out3", "inside the 3rd if loop");
+//                    //  DateFormat dateFormat= SimpleDateFormat.getDateTimeInstance();
+//                    String dateFormat = String.valueOf(android.text.format.DateFormat.format("dd-MM-yyyy HH:mm:ss", new java.util.Date()));
+//                    currentApp = mySortedMap.get(mySortedMap.lastKey()).getPackageName();
+//                    curtemp = currentApp;
+//                    apptime = calculateTime(Long.parseLong(String.valueOf(mySortedMap.get(mySortedMap.lastKey()).getTotalTimeInForeground())));
+//                    firsttime = String.valueOf(new Date(mySortedMap.get(mySortedMap.lastKey()).getFirstTimeStamp()));
+//                    lastknown = String.valueOf(new Date(mySortedMap.get(mySortedMap.lastKey()).getLastTimeUsed()));
+//                    // lasttamp=dateFormat.format(String.valueOf(new Date(mySortedMap.get(mySortedMap.lastKey()).getLastTimeStamp())));
+//                    int index = listPackageName.indexOf(currentApp);
+//                    appName = listAppName.get(index);
+//
+//                    Log.d("PackageZ", "Package "+currentApp);
+//
+//
+//                }
+//            }
+//        } else {
+//            ActivityManager am = (ActivityManager) this.getSystemService(Context.ACTIVITY_SERVICE);
+//            currentApp=am.getRunningTasks(1).get(0).topActivity.getPackageName();
+////            List<ActivityManager.RunningAppProcessInfo> tasks = am.getRunningAppProcesses();
+////            currentApp = tasks.get(0).processName;
+//            Log.d("another", currentApp);
+//            ArrayList<String> task = new ArrayList<String>(Collections.singleton(currentApp));
+//            //  currApp= String.valueOf(task.get(0).indexOf(currentApp));
 //
 //        }
-//        for (StatusBarNotification notification : notifications) {
-//            if (!notification.getPackageName().equals(currentApp)) {
-//                noti="Current";
-////                Log.d("bottle",notification.getPackageName());
-////                Log.d("water",currentApp);
+//
+//
+//        LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+//        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+//            // TODO: Consider calling
+//            //    ActivityCompat#requestPermissions
+//            // here to request the missing permissions, and then overriding
+//            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+//            //                                          int[] grantResults)
+//            // to handle the case where the user grants the permission. See the documentation
+//            // for ActivityCompat#requestPermissions for more details.
+//            return;
+//        }
+//
+//
+//        KeyguardManager myKM = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+//        if (myKM.inKeyguardRestrictedInputMode()) {
+//            Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+//            if (location != null) {
+//                double longitude = location.getLongitude();
+//                double latitude = location.getLatitude();
+//                Log.e("APPLICATION8", "Current App in foreground is: " + currentApp);
+//
+//                String date = String.valueOf(android.text.format.DateFormat.format("dd-MM-yyyy HH:mm:ss", new java.util.Date()));
+//                String curr = date + "\t" + longitude + "\t" + latitude + "\t" + currentApp + "\t" + appName +  "\n";
+//                //  if (notifications.equals(0)) {
+//                try {
+//                    File data2 = new File("details_locked.txt");
+//                    FileOutputStream fos = openFileOutput("details_locked.txt", Context.MODE_APPEND);
+//                    fos.write((curr).getBytes());
+//                    fos.close();
+//                } catch (FileNotFoundException e) {
+//                    // TODO Auto-generated catch block
+//                    e.printStackTrace();
+//                } catch (IOException e) {
+//                    // TODO Auto-generated catch block
+//                    e.printStackTrace();
+//                }
+//
+//                Log.e("CURRENT APP", "Current App in foreground is: " + currentApp);
+//                 // }
 //            }
-//            else{
-//                noti="Notification";
+//            Log.d("LOCKED", "pHONE IS LOCKED");
+//
+//        } else {
+//            Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+//            if (location != null) {
+//                double longitude = location.getLongitude();
+//                double latitude = location.getLatitude();
+//                double elevation = location.getAltitude();
+//                Log.e("APPLICATION8", "Current App in foreground is: " + currentApp);
+//                String date = String.valueOf(android.text.format.DateFormat.format("dd-MM-yyyy HH:mm:ss", new java.util.Date()));
+//                String curr = date + "\t" + longitude + "\t" + latitude + "\t" + elevation + "\t" + currentApp + "\t" + appName + "\n";
+//                if (!currentApp.equals("com.google.android.googlequicksearchbox") && (!currentApp.equals("android")))  {
+//                    try {
+//                        File data2 = new File("details_unlocked.txt");
+//                        FileOutputStream fos = openFileOutput("details_unlocked.txt", Context.MODE_APPEND);
+//                        fos.write((curr).getBytes());
+//                        fos.close();
+//                    } catch (FileNotFoundException e) {
+//                        // TODO Auto-generated catch block
+//                        e.printStackTrace();
+//                    } catch (IOException e) {
+//                        // TODO Auto-generated catch block
+//                        e.printStackTrace();
+//                    }
+//                }
 //            }
 //        }
-//       if(noti.equals(currentApp)){
-//             notif="Notification";
+//        // else{
+//        //This is what you need:
+//        //   lm.requestLocationUpdates(bestProvider, 1000, 0, this);
+//        //  }
+//        String date = String.valueOf(android.text.format.DateFormat.format("dd-MM-yyyy HH:mm:ss", new java.util.Date()));
+//        String timerapp = date + "\t" + currentApp + "\t" + appName + "\t" + apptime + "\t" + firsttime + "\t" + lastknown + "\n";
+//        // if (!currentApp.equals("com.google.android.googlequicksearchbox") && (!currentApp.equals("com.google.android.apps.nexuslauncher")) && (!currentApp.equals("android"))) {
+//        try {
+//            File data2 = new File("duration.txt");
+//            FileOutputStream fos = openFileOutput("duration.txt", Context.MODE_APPEND);
+//            fos.write((timerapp).getBytes());
+//            fos.close();
+//        } catch (FileNotFoundException e) {
+//            // TODO Auto-generated catch block
+//            e.printStackTrace();
+//        } catch (IOException e) {
+//            // TODO Auto-generated catch block
+//            e.printStackTrace();
 //        }
-//        else{
-//            notif="Current";
+//        Log.d("LOCKED", "pHONE IS UNLOCKED");
+//        //it is not locked
+//        //  }
+//
+//
+//        Log.e("CURRENT APP", "Current App in foreground is: " + currentApp);
+//        //   }
+//    }
+//
+//    // Caluclating the time//
+//
+//    private String calculateTime(long ms) {
+//        String total = "";
+//        long sec = ms / 1000;
+//        long day;
+//        long hour;
+//        long min;
+//        if (sec >= (86400)) {
+//            day = sec / 86400;
+//            sec = sec % 86400;
+//            total = total + day + "d";
 //        }
-
-
-        KeyguardManager myKM = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
-        if (myKM.inKeyguardRestrictedInputMode()) {
-            Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            if (location != null) {
-                double longitude = location.getLongitude();
-                double latitude = location.getLatitude();
-                Log.e("APPLICATION8", "Current App in foreground is: " + currentApp);
-
-                String date = String.valueOf(android.text.format.DateFormat.format("dd-MM-yyyy HH:mm:ss", new java.util.Date()));
-                String curr = date + "\t" + longitude + "\t" + latitude + "\t" + currentApp + "\t" + appName +  "\n";
-                //  if (notifications.equals(0)) {
-                try {
-                    File data2 = new File("details_locked.txt");
-                    FileOutputStream fos = openFileOutput("details_locked.txt", Context.MODE_APPEND);
-                    fos.write((curr).getBytes());
-                    fos.close();
-                } catch (FileNotFoundException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-
-                Log.e("CURRENT APP", "Current App in foreground is: " + currentApp);
-                 // }
-            }
-            Log.d("LOCKED", "pHONE IS LOCKED");
-
-        } else {
-            Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            if (location != null) {
-                double longitude = location.getLongitude();
-                double latitude = location.getLatitude();
-                double elevation = location.getAltitude();
-                Log.e("APPLICATION8", "Current App in foreground is: " + currentApp);
-                String date = String.valueOf(android.text.format.DateFormat.format("dd-MM-yyyy HH:mm:ss", new java.util.Date()));
-                String curr = date + "\t" + longitude + "\t" + latitude + "\t" + elevation + "\t" + currentApp + "\t" + appName + "\n";
-                if (!currentApp.equals("com.google.android.googlequicksearchbox") && (!currentApp.equals("android")))  {
-                    try {
-                        File data2 = new File("details_unlocked.txt");
-                        FileOutputStream fos = openFileOutput("details_unlocked.txt", Context.MODE_APPEND);
-                        fos.write((curr).getBytes());
-                        fos.close();
-                    } catch (FileNotFoundException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    } catch (IOException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }
-        // else{
-        //This is what you need:
-        //   lm.requestLocationUpdates(bestProvider, 1000, 0, this);
-        //  }
-        String date = String.valueOf(android.text.format.DateFormat.format("dd-MM-yyyy HH:mm:ss", new java.util.Date()));
-        String timerapp = date + "\t" + currentApp + "\t" + appName + "\t" + apptime + "\t" + firsttime + "\t" + lastknown + "\n";
-        // if (!currentApp.equals("com.google.android.googlequicksearchbox") && (!currentApp.equals("com.google.android.apps.nexuslauncher")) && (!currentApp.equals("android"))) {
-        try {
-            File data2 = new File("duration.txt");
-            FileOutputStream fos = openFileOutput("duration.txt", Context.MODE_APPEND);
-            fos.write((timerapp).getBytes());
-            fos.close();
-        } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        Log.d("LOCKED", "pHONE IS UNLOCKED");
-        //it is not locked
-        //  }
-
-
-        Log.e("CURRENT APP", "Current App in foreground is: " + currentApp);
-        //   }
-    }
-
-    // Caluclating the time//
-
-    private String calculateTime(long ms) {
-        String total = "";
-        long sec = ms / 1000;
-        long day;
-        long hour;
-        long min;
-        if (sec >= (86400)) {
-            day = sec / 86400;
-            sec = sec % 86400;
-            total = total + day + "d";
-        }
-        if (sec >= 3600) {
-            hour = sec / 3600;
-            sec = sec % 3600;
-            total = total + hour + "h";
-        }
-        if (sec >= 60) {
-            min = sec / 60;
-            sec = sec % 60;
-            total = total + min + "m";
-        }
-        if (sec > 0) {
-            total = total + sec + "s";
-        }
-        return total;
-    }
-
-
-
-//Getting the application names//
-
+//        if (sec >= 3600) {
+//            hour = sec / 3600;
+//            sec = sec % 3600;
+//            total = total + hour + "h";
+//        }
+//        if (sec >= 60) {
+//            min = sec / 60;
+//            sec = sec % 60;
+//            total = total + min + "m";
+//        }
+//        if (sec > 0) {
+//            total = total + sec + "s";
+//        }
+//        return total;
+//    }
+//
+//
+//
+////Getting the application names//
+//
     public void installedapp() {
         List<PackageInfo> packageList = getPackageManager().getInstalledPackages(0);
         //  List<ApplicationInfo> applications = getPackageManager().getInstalledApplications(PackageManager.GET_UNINSTALLED_PACKAGES);
@@ -628,7 +643,7 @@ Context context;
 
             try {
                 File data3 = new File("appname.txt");
-                FileOutputStream fos = openFileOutput("appname.txt",Context.MODE_APPEND);
+                FileOutputStream fos = openFileOutput("appname.txt", Context.MODE_APPEND);
                 fos.write((app).getBytes());
                 fos.close();
 //                FileWriter fw =new FileWriter("appname.txt", false);
@@ -643,86 +658,91 @@ Context context;
             }
 
         }
-//        for(int i=0;i<applications.size();i++){
-//            ApplicationInfo applicationInfo=applications.get(i);
-//            String apps=applicationInfo.packageName;
-//            String appli = apps + "\t" + "\n";
-//            try {
-//                File data3 = new File("unisntalled.txt");
-//                FileOutputStream fos = openFileOutput("uninstalled.txt", Context.MODE_APPEND);
-//                fos.write((appli).getBytes());
-//                fos.close();
-//            } catch (FileNotFoundException e) {
-//                // TODO Auto-generated catch block
-//                e.printStackTrace();
-//            } catch (IOException e) {
-//                // TODO Auto-generated catch block
-//                e.printStackTrace();
-//            }
-//        }
     }
 
-    //Getting indivdual time
-
-    @SuppressWarnings("ConstantConditions")
-    public void aggregationapp() {
-        String lastknown = "NULL";
+    ////        for(int i=0;i<applications.size();i++){
+////            ApplicationInfo applicationInfo=applications.get(i);
+////            String apps=applicationInfo.packageName;
+////            String appli = apps + "\t" + "\n";
+////            try {
+////                File data3 = new File("unisntalled.txt");
+////                FileOutputStream fos = openFileOutput("uninstalled.txt", Context.MODE_APPEND);
+////                fos.write((appli).getBytes());
+////                fos.close();
+////            } catch (FileNotFoundException e) {
+////                // TODO Auto-generated catch block
+////                e.printStackTrace();
+////            } catch (IOException e) {
+////                // TODO Auto-generated catch block
+////                e.printStackTrace();
+////            }
+////        }
+//    }
+//
+//    //Getting indivdual time
+//
+//    @SuppressWarnings("ConstantConditions")
+       public void aggregationapp() {
+      String lastknown = "NULL";
         String appName = "NULL";
         String previous1 = "NULL";
-        UsageStatsManager usm = (UsageStatsManager) this.getSystemService(Context.USAGE_STATS_SERVICE);
-        long time = System.currentTimeMillis();
-        SimpleDateFormat sdf = new SimpleDateFormat("hh:mm:ss");
+//        UsageStatsManager usm = (UsageStatsManager) this.getSystemService(Context.USAGE_STATS_SERVICE);
+//        long time = System.currentTimeMillis();
+       SimpleDateFormat sdf = new SimpleDateFormat("hh:mm:ss");
         Date systemDate = Calendar.getInstance().getTime();
-        String myDate = sdf.format(systemDate);
-        List<UsageStats> appList = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, time - 1000 * 1000, time);
-        if (appList != null && appList.size() > 0) {
-            SortedMap<Long, UsageStats> mySortedMap = new TreeMap<Long, UsageStats>();
-            for (UsageStats usageStats : appList) {
-                mySortedMap.put(usageStats.getLastTimeUsed(), usageStats);
-            }
-            if (mySortedMap != null && !mySortedMap.isEmpty()) {
-                String dateFormat = String.valueOf(android.text.format.DateFormat.format("dd-MM-yyyy HH:mm:ss", new java.util.Date()));
-                current = mySortedMap.get(mySortedMap.lastKey()).getPackageName();
-
-                //  lastknown = String.valueOf(new Date(mySortedMap.get(mySortedMap.lastKey()).getLastTimeUsed()));
-                //  int index = listPackageName.indexOf(previous);
-                // appName = listAppName.get(index);
+       String myDate = sdf.format(systemDate);
+//        List<UsageStats> appList = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, time - 1000 * 1000, time);
+//        if (appList != null && appList.size() > 0) {
+//            SortedMap<Long, UsageStats> mySortedMap = new TreeMap<Long, UsageStats>();
+//            for (UsageStats usageStats : appList) {
+//                mySortedMap.put(usageStats.getLastTimeUsed(), usageStats);
+//            }
+//            if (mySortedMap != null && !mySortedMap.isEmpty()) {
+//                String dateFormat = String.valueOf(android.text.format.DateFormat.format("dd-MM-yyyy HH:mm:ss", new java.util.Date()));
+//                current = mySortedMap.get(mySortedMap.lastKey()).getPackageName();
+//
+//                //  lastknown = String.valueOf(new Date(mySortedMap.get(mySortedMap.lastKey()).getLastTimeUsed()));
+//                //  int index = listPackageName.indexOf(previous);
+//                // appName = listAppName.get(index);
+           AppChecker appChecker = new AppChecker();
+           current = appChecker.getForegroundApp(getBaseContext());
                 java.text.DateFormat df = new java.text.SimpleDateFormat("hh:mm:ss");
                 {
                     if (!current.equals(previous)) {
                         Log.d("panda", "zebra" + previous);
                         Log.d("side", "dish" + current);
                         Log.d("tims", "Horton" + myDate);
-
-
+//
+//
                         startTime = System.currentTimeMillis();
-                        previous = mySortedMap.get(mySortedMap.lastKey()).getPackageName();
-
-                        int index = listPackageName.indexOf(previous);
+//                        previous = mySortedMap.get(mySortedMap.lastKey()).getPackageName();
+                        previous=appChecker.getForegroundApp(getBaseContext());
+//
+                       int index = listPackageName.indexOf(previous);
                         appName = listAppName.get(index);
-
-
-                        if (startTime != previousStartTime) {
+//
+//
+                       if (startTime != previousStartTime) {
                             totlaTime = startTime - previousStartTime;
-
+//
                         }
-
+//
                         Log.d("AppInfo", "app name " + previous + " App time" + totlaTime);
-
+//
                         LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-                        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                            // TODO: Consider calling
-                            //    ActivityCompat#requestPermissions
-                            // here to request the missing permissions, and then overriding
-                            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                            //                                          int[] grantResults)
-                            // to handle the case where the user grants the permission. See the documentation
-                            // for ActivityCompat#requestPermissions for more details.
-                            return;
-                        }
-
-                        // Added to chcke if the phone is locked vs unlocked//
-
+//                        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+//                            // TODO: Consider calling
+//                            //    ActivityCompat#requestPermissions
+//                            // here to request the missing permissions, and then overriding
+//                            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+//                            //                                          int[] grantResults)
+//                            // to handle the case where the user grants the permission. See the documentation
+//                            // for ActivityCompat#requestPermissions for more details.
+//                            return;
+//                        }
+//
+//                        // Added to chcke if the phone is locked vs unlocked//
+//
                         String status="NULL";
                         KeyguardManager myKM = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
                         if (myKM.inKeyguardRestrictedInputMode()){
@@ -731,7 +751,7 @@ Context context;
                         else{
                             status="unlocked";
                         }
-                        Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                        @SuppressLint("MissingPermission") Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                         if (location != null) {
                             double longitude = location.getLongitude();
                             double latitude = location.getLatitude();
@@ -749,32 +769,142 @@ Context context;
                                 // TODO Auto-generated catch block
                                 e.printStackTrace();
                             }
-
+//
                             previousStartTime = startTime;
                         }
                     } else if (current.equals(previous)) {
-
-
-                        //endTime = startTime;
-
-                        lastknown = String.valueOf(new Date(mySortedMap.get(mySortedMap.lastKey()).getLastTimeUsed()));
+//
+//
+//                        //endTime = startTime;
+//
+//                        lastknown = String.valueOf(new Date(mySortedMap.get(mySortedMap.lastKey()).getLastTimeUsed()));
                         Log.d("Birds", "crow" + lastknown);
-                    }
+                   }
                     previous = current;
 
                     Log.d("zoo", "animals" + previous);
-
-
+//
+//
                 }
-
-
-            } else {
-                ActivityManager am = (ActivityManager) this.getSystemService(Context.ACTIVITY_SERVICE);
-                List<ActivityManager.RunningAppProcessInfo> tasks = am.getRunningAppProcesses();
-            }
-        }
+//
+//
+//            } else {
+//                ActivityManager am = (ActivityManager) this.getSystemService(Context.ACTIVITY_SERVICE);
+//                List<ActivityManager.RunningAppProcessInfo> tasks = am.getRunningAppProcesses();
+//            }
+//        }
     }
-
-
 }
+//    public void aggregationapp() {
+//        String lastknown = "NULL";
+//        String appName = "NULL";
+//        String previous1 = "NULL";
+//        UsageStatsManager usm = (UsageStatsManager) this.getSystemService(Context.USAGE_STATS_SERVICE);
+//        long time = System.currentTimeMillis();
+//        SimpleDateFormat sdf = new SimpleDateFormat("hh:mm:ss");
+//        Date systemDate = Calendar.getInstance().getTime();
+//        String myDate = sdf.format(systemDate);
+//        List<UsageStats> appList = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, time - 1000 * 1000, time);
+//        if (appList != null && appList.size() > 0) {
+//            SortedMap<Long, UsageStats> mySortedMap = new TreeMap<Long, UsageStats>();
+//            for (UsageStats usageStats : appList) {
+//                mySortedMap.put(usageStats.getLastTimeUsed(), usageStats);
+//            }
+//            if (mySortedMap != null && !mySortedMap.isEmpty()) {
+//                String dateFormat = String.valueOf(android.text.format.DateFormat.format("dd-MM-yyyy HH:mm:ss", new java.util.Date()));
+//                current = mySortedMap.get(mySortedMap.lastKey()).getPackageName();
+//
+//                //  lastknown = String.valueOf(new Date(mySortedMap.get(mySortedMap.lastKey()).getLastTimeUsed()));
+//                //  int index = listPackageName.indexOf(previous);
+//                // appName = listAppName.get(index);
+//                java.text.DateFormat df = new java.text.SimpleDateFormat("hh:mm:ss");
+//                {
+//                    if (!current.equals(previous)) {
+//                        Log.d("panda", "zebra" + previous);
+//                        Log.d("side", "dish" + current);
+//                        Log.d("tims", "Horton" + myDate);
+//
+//
+//                        startTime = System.currentTimeMillis();
+//                        previous = mySortedMap.get(mySortedMap.lastKey()).getPackageName();
+//
+//                        int index = listPackageName.indexOf(previous);
+//                        appName = listAppName.get(index);
+//
+//
+//                        if (startTime != previousStartTime) {
+//                            totlaTime = startTime - previousStartTime;
+//
+//                        }
+//
+//                        Log.d("AppInfo", "app name " + previous + " App time" + totlaTime);
+//
+//                        LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+//                        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+//                            // TODO: Consider calling
+//                            //    ActivityCompat#requestPermissions
+//                            // here to request the missing permissions, and then overriding
+//                            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+//                            //                                          int[] grantResults)
+//                            // to handle the case where the user grants the permission. See the documentation
+//                            // for ActivityCompat#requestPermissions for more details.
+//                            return;
+//                        }
+//
+//                        // Added to chcke if the phone is locked vs unlocked//
+//
+//                        String status="NULL";
+//                        KeyguardManager myKM = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+//                        if (myKM.inKeyguardRestrictedInputMode()){
+//                            status="locked";
+//                        }
+//                        else{
+//                            status="unlocked";
+//                        }
+//                        Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+//                        if (location != null) {
+//                            double longitude = location.getLongitude();
+//                            double latitude = location.getLatitude();
+//                            String date = String.valueOf(android.text.format.DateFormat.format("dd-MM-yyyy HH:mm:ss", new java.util.Date()));
+//                            String appt = date + "\t" + latitude + "\t" + longitude + "\t" + previous + "\t" + appName + "\t" + totlaTime + "\t" + status +"\n";
+//                            try {
+//                                File data7 = new File("individual.txt");
+//                                FileOutputStream fos = openFileOutput("individual.txt", Context.MODE_APPEND);
+//                                fos.write((appt).getBytes());
+//                                fos.close();
+//                            } catch (FileNotFoundException e) {
+//                                // TODO Auto-generated catch block
+//                                e.printStackTrace();
+//                            } catch (IOException e) {
+//                                // TODO Auto-generated catch block
+//                                e.printStackTrace();
+//                            }
+//
+//                            previousStartTime = startTime;
+//                        }
+//                    } else if (current.equals(previous)) {
+//
+//
+//                        //endTime = startTime;
+//
+//                        lastknown = String.valueOf(new Date(mySortedMap.get(mySortedMap.lastKey()).getLastTimeUsed()));
+//                        Log.d("Birds", "crow" + lastknown);
+//                    }
+//                    previous = current;
+//
+//                    Log.d("zoo", "animals" + previous);
+//
+//
+//                }
+//
+//
+//            } else {
+//                ActivityManager am = (ActivityManager) this.getSystemService(Context.ACTIVITY_SERVICE);
+//                List<ActivityManager.RunningAppProcessInfo> tasks = am.getRunningAppProcesses();
+//            }
+//        }
+//    }
+
+
+//}
 //

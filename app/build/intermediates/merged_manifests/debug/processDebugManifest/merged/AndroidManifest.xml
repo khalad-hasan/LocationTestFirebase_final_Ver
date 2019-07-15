@@ -51,14 +51,6 @@
             android:enabled="true"
             android:exported="true"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" />
-        <service
-            android:name="com.example.user.locationtestfirebase.NotificationService"
-            android:enabled="true"
-            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" >
-            <intent-filter>
-                <action android:name="android.service.notification.NotificationListenerService" />
-            </intent-filter>
-        </service>
 
         <activity
             android:name="com.google.firebase.auth.internal.FederatedSignInActivity"
