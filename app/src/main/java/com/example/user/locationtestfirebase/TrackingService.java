@@ -3,57 +3,30 @@ package com.example.user.locationtestfirebase;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
-import android.app.Activity;
-import android.app.ActivityManager;
-import android.app.Application;
-import android.app.ApplicationErrorReport;
 import android.app.KeyguardManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.app.admin.DeviceAdminInfo;
-import android.app.usage.UsageStats;
-import android.app.usage.UsageStatsManager;
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
-import android.location.Criteria;
 import android.location.Location;
-import android.location.LocationListener;
-import android.os.AsyncTask;
 import android.os.Build;
-import android.os.Bundle;
 import android.os.IBinder;
-import android.service.notification.NotificationListenerService;
-import android.service.notification.StatusBarNotification;
-import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 
-import com.google.android.gms.common.internal.Constants;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
-
-import com.google.firebase.auth.AuthResult;
-import com.google.firebase.auth.FirebaseAuth;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 
-import android.location.Location;
 import android.location.LocationManager;
 import android.widget.Toast;
 
@@ -66,25 +39,14 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
-import java.util.SortedMap;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.TreeMap;
-import java.util.concurrent.Executor;
-
-import static android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND;
-import static android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE;
 
 public class TrackingService extends Service {
 
@@ -100,6 +62,7 @@ public class TrackingService extends Service {
     private FusedLocationProviderClient mFusedLocationClient;
     private List<String> listPackageName = new ArrayList<>();
     private List<String> listAppName = new ArrayList<>();
+    private List<String> currentapp = new ArrayList<>();
     private Timer timer = new Timer();
     private android.os.Handler handler = new android.os.Handler();
 
@@ -196,6 +159,19 @@ public class TrackingService extends Service {
     };
 
     private void loginToFirebase() {
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        aggregationapp();
+
+                    }
+                });
+            }
+        }, 0, 1000);
 
 //
 ////Authenticate with Firebase, using the email and password we created earlier//
@@ -253,8 +229,8 @@ public class TrackingService extends Service {
 
 //Specify how often your app should request the device’s location//
 
-        //  request.setInterval(900000);
-        request.setInterval(1000);
+          request.setInterval(900000);
+        //request.setInterval(1000);
 
 //Get the most accurate location data available//
 
@@ -278,7 +254,7 @@ public class TrackingService extends Service {
 //Get a reference to the database, so your app can perform read and write operations//
 
                     DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Test1");
-                    //   DatabaseReference ref1= FirebaseDatabase.getInstance().getReference("Test2");
+                  //    DatabaseReference ref1= FirebaseDatabase.getInstance().getReference("Test2");
                     //    DatabaseReference ref3= FirebaseDatabase.getInstance().getReference("Test3");
                     android.location.Location location = locationResult.getLastLocation();
                     if (location != null) {
@@ -305,7 +281,7 @@ public class TrackingService extends Service {
 
                         //Save the location data to the database//
                         ref.child("date").setValue(date.toString());
-                        //    ref1.child("date").setValue(date.toString());
+                    //        ref1.child("date").setValue(date.toString());
                         //   ref3.child("date").setValue(date.toString());
 
 
@@ -320,48 +296,48 @@ public class TrackingService extends Service {
     //Geeting it run//
 
 
-    @Override
-    public void onStart(Intent intent, int startId) {
-        // Let it continue running until it is stopped.
-        Toast.makeText(this, "Service Started", Toast.LENGTH_LONG).show();
-
-        List apps = new ArrayList<>();
-        final String[] activityOnTop = {null};
-
-        //aggregationapp();
-
-
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-
-                        aggregationapp();
-
-                    }
-                });
-            }
-        }, 0, 1000);
-
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-
-                        //   printForegroundTask();
-                        //   printfg();
-
-
-                    }
-                });
-            }
-        }, 0, 1000);
-
-    }
+//    @Override
+//    public void onStart(Intent intent, int startId) {
+//        // Let it continue running until it is stopped.
+//        Toast.makeText(this, "Service Started", Toast.LENGTH_LONG).show();
+//
+//        List apps = new ArrayList<>();
+//        final String[] activityOnTop = {null};
+//
+//        //aggregationapp();
+//
+//
+//        timer.schedule(new TimerTask() {
+//            @Override
+//            public void run() {
+//                handler.post(new Runnable() {
+//                    @Override
+//                    public void run() {
+//
+//                        aggregationapp();
+//
+//                    }
+//                });
+//            }
+//        }, 0, 1000);
+//
+//        timer.schedule(new TimerTask() {
+//            @Override
+//            public void run() {
+//                handler.post(new Runnable() {
+//                    @Override
+//                    public void run() {
+//
+//                        //   printForegroundTask();
+//                        //   printfg();
+//
+//
+//                    }
+//                });
+//            }
+//        }, 0, 1000);
+//
+//    }
 
     private void startChecker() {
 
@@ -377,7 +353,7 @@ public class TrackingService extends Service {
                     @Override
                     public void onForeground(String packageName) {
                         //    Toast.makeText(getBaseContext(), "Foreground: " + packageName, Toast.LENGTH_SHORT).show();
-                        Log.d("finalZ", packageName);
+                        Log.d("finalZ1", packageName);
                         int index = listPackageName.indexOf(packageName);
                         appName = listAppName.get(index);
                         LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
@@ -641,6 +617,7 @@ public class TrackingService extends Service {
 
             String app = appName + "\t" + pacName + "\t" + "\n";
 
+
             try {
                 File data3 = new File("appname.txt");
                 FileOutputStream fos = openFileOutput("appname.txt", Context.MODE_APPEND);
@@ -706,30 +683,53 @@ public class TrackingService extends Service {
 //                // appName = listAppName.get(index);
            AppChecker appChecker = new AppChecker();
            current = appChecker.getForegroundApp(getBaseContext());
+
+
+
                 java.text.DateFormat df = new java.text.SimpleDateFormat("hh:mm:ss");
-                {
-                    if (!current.equals(previous)) {
-                        Log.d("panda", "zebra" + previous);
-                        Log.d("side", "dish" + current);
-                        Log.d("tims", "Horton" + myDate);
+           {
+               if (current != null) {
+                   if (!current.equals(previous)) {
+                       Log.d("panda", "zebra" + previous);
+                       Log.d("side", "dish" + current);
+                       Log.d("tims", "Horton" + myDate);
 //
 //
-                        startTime = System.currentTimeMillis();
-//                        previous = mySortedMap.get(mySortedMap.lastKey()).getPackageName();
-                        previous=appChecker.getForegroundApp(getBaseContext());
+                     //  previous = appChecker.getForegroundApp(getBaseContext());
+                       startTime = System.currentTimeMillis();
+
+
 //
                        int index = listPackageName.indexOf(previous);
-                        appName = listAppName.get(index);
+                       if (index < 0) {
+                           appName = listAppName.get(0);
+                       } else {
+                           appName = listAppName.get(index);
+                       }
+
+
+                       if (startTime != previousStartTime && previousStartTime!=0) {
+                           totlaTime=0;
+
+                           totlaTime = startTime - previousStartTime;
+
+                           //  totlaTime=previousStartTime-startTime;
 //
+                       }
 //
-                       if (startTime != previousStartTime) {
-                            totlaTime = startTime - previousStartTime;
+                     // long startTime=0;
+//                        previous = mySortedMap.get(mySortedMap.lastKey()).getPackageName();
 //
-                        }
+////
+//                       if (startTime != previousStartTime) {
+//                           totlaTime = startTime - previousStartTime;
+//                         //  totlaTime=previousStartTime-startTime;
+////
+//                       }
+////
+                       Log.d("FinalZ2", "app name " + previous +"\t"+ current + " App time" + totlaTime +"\t" +previousStartTime +"\t"+ startTime);
 //
-                        Log.d("AppInfo", "app name " + previous + " App time" + totlaTime);
-//
-                        LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+                       LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 //                        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 //                            // TODO: Consider calling
 //                            //    ActivityCompat#requestPermissions
@@ -743,49 +743,49 @@ public class TrackingService extends Service {
 //
 //                        // Added to chcke if the phone is locked vs unlocked//
 //
-                        String status="NULL";
-                        KeyguardManager myKM = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
-                        if (myKM.inKeyguardRestrictedInputMode()){
-                            status="locked";
-                        }
-                        else{
-                            status="unlocked";
-                        }
-                        @SuppressLint("MissingPermission") Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                        if (location != null) {
-                            double longitude = location.getLongitude();
-                            double latitude = location.getLatitude();
-                            String date = String.valueOf(android.text.format.DateFormat.format("dd-MM-yyyy HH:mm:ss", new java.util.Date()));
-                            String appt = date + "\t" + latitude + "\t" + longitude + "\t" + previous + "\t" + appName + "\t" + totlaTime + "\t" + status +"\n";
-                            try {
-                                File data7 = new File("individual.txt");
-                                FileOutputStream fos = openFileOutput("individual.txt", Context.MODE_APPEND);
-                                fos.write((appt).getBytes());
-                                fos.close();
-                            } catch (FileNotFoundException e) {
-                                // TODO Auto-generated catch block
-                                e.printStackTrace();
-                            } catch (IOException e) {
-                                // TODO Auto-generated catch block
-                                e.printStackTrace();
-                            }
+                       String status = "NULL";
+                       KeyguardManager myKM = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+                       if (myKM.inKeyguardRestrictedInputMode()) {
+                           status = "locked";
+                       } else {
+                           status = "unlocked";
+                       }
+                       @SuppressLint("MissingPermission") Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                       if (location != null) {
+                           double longitude = location.getLongitude();
+                           double latitude = location.getLatitude();
+                           String date = String.valueOf(android.text.format.DateFormat.format("dd-MM-yyyy HH:mm:ss", new java.util.Date()));
+                           String appt = date + "\t" + latitude + "\t" + longitude + "\t" + previous + "\t" + appName + "\t" + totlaTime + "\t" + status + "\n";
+                           try {
+                               File data7 = new File("individual.txt");
+                               FileOutputStream fos = openFileOutput("individual.txt", Context.MODE_APPEND);
+                               fos.write((appt).getBytes());
+                               fos.close();
+                           } catch (FileNotFoundException e) {
+                               // TODO Auto-generated catch block
+                               e.printStackTrace();
+                           } catch (IOException e) {
+                               // TODO Auto-generated catch block
+                               e.printStackTrace();
+                           }
 //
-                            previousStartTime = startTime;
-                        }
-                    } else if (current.equals(previous)) {
+                           previousStartTime = startTime;
+                       }
+                   } else if (current.equals(previous)) {
 //
 //
 //                        //endTime = startTime;
 //
 //                        lastknown = String.valueOf(new Date(mySortedMap.get(mySortedMap.lastKey()).getLastTimeUsed()));
-                        Log.d("Birds", "crow" + lastknown);
+                       Log.d("Birds", "crow" + lastknown);
                    }
-                    previous = current;
+                   previous = current;
 
-                    Log.d("zoo", "animals" + previous);
+                   Log.d("zoo", "animals" + previous);
 //
 //
-                }
+               }
+           }
 //
 //
 //            } else {
