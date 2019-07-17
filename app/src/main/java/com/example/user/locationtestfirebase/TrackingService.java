@@ -727,7 +727,7 @@ public class TrackingService extends Service {
 ////
 //                       }
 ////
-                       Log.d("FinalZ2", "app name " + previous +"\t"+ current + " App time" + totlaTime +"\t" +previousStartTime +"\t"+ startTime);
+                       Log.d("FinalZ2", "app name " + previous  + " App time" + totlaTime +"\t" +previousStartTime +"\t"+ startTime);
 //
                        LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 //                        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -751,6 +751,7 @@ public class TrackingService extends Service {
                            status = "unlocked";
                        }
                        @SuppressLint("MissingPermission") Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                       if (!appName.equals("Amazon Shopping")){
                        if (location != null) {
                            double longitude = location.getLongitude();
                            double latitude = location.getLatitude();
@@ -771,7 +772,7 @@ public class TrackingService extends Service {
 //
                            previousStartTime = startTime;
                        }
-                   } else if (current.equals(previous)) {
+                   }} else if (current.equals(previous)) {
 //
 //
 //                        //endTime = startTime;
