@@ -1,4 +1,4 @@
-#Wed Jul 17 15:12:25 PDT 2019
+#Wed Jul 17 17:09:59 PDT 2019
 base.0=C\:\\Users\\User\\Desktop\\UBC\\app usage\\loa\\LocationTestFirebase\\app\\build\\intermediates\\transforms\\dexMerger\\debug\\1
 path.1=classes.dex
 renamed.1=classes2.dex

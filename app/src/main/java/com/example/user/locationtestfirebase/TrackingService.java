@@ -702,7 +702,7 @@ public class TrackingService extends Service {
 //
                        int index = listPackageName.indexOf(previous);
                        if (index < 0) {
-                           appName = listAppName.get(0);
+                           appName = "Null";
                        } else {
                            appName = listAppName.get(index);
                        }
@@ -751,7 +751,7 @@ public class TrackingService extends Service {
                            status = "unlocked";
                        }
                        @SuppressLint("MissingPermission") Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                       if (!appName.equals("Amazon Shopping")){
+                       if (!current.equals("NULL")){
                        if (location != null) {
                            double longitude = location.getLongitude();
                            double latitude = location.getLatitude();
